@@ -1,0 +1,39 @@
+name: ZeroPatch CI
+description: Statically scan GitHub Actions workflows and produce a review-only security report.
+author: ZeroPatch CI
+branding:
+  icon: shield
+  color: green
+
+inputs:
+  workflow-path:
+    description: A workflow YAML file or directory to scan, relative to the repository workspace.
+    required: false
+    default: .github/workflows
+  report-path:
+    description: JSON report path, relative to the repository workspace.
+    required: false
+    default: .zeropatch/zeropatch-report.json
+  fail-on:
+    description: "Minimum severity that fails the step: never, critical, high, medium, or low."
+    required: false
+    default: critical
+
+outputs:
+  report-path:
+    description: Relative path to the generated JSON report.
+  finding-count:
+    description: Number of findings across all scanned workflows.
+  blocking-findings:
+    description: Number of findings at or above the selected fail-on severity.
+
+runs:
+  using: docker
+  image: Dockerfile.action
+  args:
+    - --workflow-path
+    - ${{ inputs.workflow-path }}
+    - --report-path
+    - ${{ inputs.report-path }}
+    - --fail-on
+    - ${{ inputs.fail-on }}

@@ -1,9 +1,12 @@
+import json
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 from fastapi.testclient import TestClient
 
+from app.action_runner import run
 from app.main import app
 from app.remediator import deterministic_patch
 from app.scanner import scan_workflow
@@ -36,7 +39,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - run: 'echo \"uses: actions/checkout@v4\"'
+      - run: 'echo "uses: actions/checkout@v4"'
 """
         self.assertNotIn("ZP001", {finding.rule_id for finding in scan_workflow(workflow)})
 
@@ -82,6 +85,20 @@ jobs:
         rules = {finding.rule_id for finding in scan_workflow(workflow)}
         self.assertNotIn("ZP002", rules)
         self.assertNotIn("ZP004", rules)
+
+
+class ActionRunnerTests(unittest.TestCase):
+    def test_writes_a_redacted_report_and_honors_fail_threshold(self):
+        with patch("app.action_runner.Path.mkdir"), patch("app.action_runner.Path.write_text") as write_report:
+            status, report = run("fixtures/insecure-release.yml", ".zeropatch/report.json", "critical", ROOT)
+        saved = json.loads(write_report.call_args.args[0])
+        self.assertEqual(status, 1)
+        self.assertEqual(report["finding_count"], saved["finding_count"])
+        self.assertNotIn("evidence", saved["findings"][0])
+
+    def test_rejects_paths_outside_the_workspace(self):
+        with self.assertRaises(ValueError):
+            run("..", ".zeropatch/report.json", "never", ROOT)
 
 
 class ApiSafetyTests(unittest.TestCase):

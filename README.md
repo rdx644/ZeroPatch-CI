@@ -50,3 +50,17 @@ The container runs as an unprivileged user and listens on `0.0.0.0:8000`. The de
 ## Verification
 
 The test suite includes parser, transformation, artifact-flow, permissions-scope, API rejection, and response-header regressions. Review the generated draft patch before opening any PR; evidence proves only the bounded static checks, not runtime workflow behavior.
+
+## Use as a GitHub Action
+
+ZeroPatch can run in any GitHub Actions repository without running the repository workflows it inspects. It writes a redacted JSON report, step-summary counts, and can fail the check at a selected severity.
+
+```yaml
+- uses: rdx644/ZeroPatch-CI@v1.0.0
+  with:
+    workflow-path: .github/workflows
+    report-path: .zeropatch/zeropatch-report.json
+    fail-on: critical
+```
+
+Available outputs are `report-path`, `finding-count`, and `blocking-findings`. Use `fail-on: never` for report-only mode. Pin the action to the immutable commit SHA behind the release tag in production workflows. See [GitHub Action usage](docs/github-action.md) for the complete contract.
