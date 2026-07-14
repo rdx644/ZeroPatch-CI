@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: zeropatch-ci-rdx644
+    runtime: python
+    plan: free
+    buildCommand: pip install --no-cache-dir -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ZEROPATCH_ALLOWED_HOSTS
+        value: zeropatch-ci-rdx644.onrender.com
+      - key: ZEROPATCH_ALLOW_AGENT
+        value: "0"

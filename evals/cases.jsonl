@@ -1,0 +1,2 @@
+{"name":"insecure_fixture_has_all_controls","expected_rules":["ZP001","ZP002","ZP003","ZP004","ZP005"]}
+{"name":"artifact_execution_is_not_auto_fixable","expected_non_fixable":"ZP005"}

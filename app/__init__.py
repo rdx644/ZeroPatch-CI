@@ -1,0 +1,1 @@
+"""ZeroPatch CI application package."""

@@ -1,0 +1,7 @@
+.git
+.venv
+.env.local
+__pycache__
+*.py[cod]
+evals/results
+output

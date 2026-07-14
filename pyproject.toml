@@ -1,0 +1,8 @@
+[project]
+name = "zeropatch-ci"
+version = "0.1.0"
+description = "Evidence-first GitHub Actions supply-chain remediation"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
