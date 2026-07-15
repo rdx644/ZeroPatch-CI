@@ -2,6 +2,8 @@
 
 Evidence-first GitHub Actions supply-chain remediation. ZeroPatch parses a workflow, scans five high-confidence controls, ranks findings with transparent indicators, and creates a **draft-only** remediation artifact with structural validation evidence.
 
+For the hackathon narrative, architecture, 90-second demo, and judging proof, read [the Build Week submission brief](docs/hackathon_submission.md).
+
 ## Safety boundary
 
 - YAML node positions?not raw text regexes?drive finding detection and changes.
