@@ -28,7 +28,7 @@ class Finding(StrictModel):
 
 class ScanRequest(StrictModel):
     workflow: str = Field(min_length=1, max_length=100_000)
-    source_name: str = Field(default="workflow.yml", min_length=1, max_length=160)
+    source_name: str = Field(default="workflow.yml", min_length=1, max_length=160, pattern=r".*\S.*")
 
 
 class ScanResponse(StrictModel):

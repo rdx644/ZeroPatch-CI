@@ -1,4 +1,5 @@
 import json
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -86,6 +87,23 @@ jobs:
         self.assertNotIn("ZP002", rules)
         self.assertNotIn("ZP004", rules)
 
+    def test_runner_label_sequences_are_review_only_for_pr_workflows(self):
+        workflow = """name: test
+on: pull_request
+jobs:
+  check:
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - run: echo safe
+"""
+        finding = next(item for item in scan_workflow(workflow) if item.rule_id == "ZP004")
+        self.assertFalse(finding.fixable)
+
+    def test_overlapping_replacements_are_rejected(self):
+        selected = [item for item in scan_workflow(self.workflow) if item.fixable]
+        with self.assertRaisesRegex(ValueError, "overlap"):
+            deterministic_patch(self.workflow, [selected[0], selected[0]])
+
 
 class ActionRunnerTests(unittest.TestCase):
     def test_writes_a_redacted_report_and_honors_fail_threshold(self):
@@ -99,6 +117,11 @@ class ActionRunnerTests(unittest.TestCase):
     def test_rejects_paths_outside_the_workspace(self):
         with self.assertRaises(ValueError):
             run("..", ".zeropatch/report.json", "never", ROOT)
+
+    def test_report_path_write_errors_are_reported_cleanly(self):
+        with patch("app.action_runner.Path.write_text", side_effect=OSError("disk full")):
+            with self.assertRaisesRegex(ValueError, "Unable to write report-path"):
+                run("fixtures/insecure-release.yml", ".zeropatch/report.json", "never", ROOT)
 
 
 class ApiSafetyTests(unittest.TestCase):

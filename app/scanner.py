@@ -96,6 +96,19 @@ def _permission_findings(node: Node | None) -> list[RawFinding]:
     return findings
 
 
+def _runner_finding(node: Node | None, untrusted_pr_path: bool) -> RawFinding | None:
+    """Flag self-hosted labels for pull-request workflows without guessing a safe rewrite."""
+    if not untrusted_pr_path:
+        return None
+    if isinstance(node, ScalarNode) and "self-hosted" in node.value:
+        can_replace = node.value.strip() == "self-hosted"
+        return _finding("ZP004", node, node.value, fixable=can_replace, replacement="ubuntu-latest" if can_replace else None)
+    if isinstance(node, SequenceNode):
+        for label in node.value:
+            if isinstance(label, ScalarNode) and label.value == "self-hosted":
+                return _finding("ZP004", label, label.value)
+    return None
+
 def _artifact_execution_findings(steps: Node | None) -> list[RawFinding]:
     if not isinstance(steps, SequenceNode):
         return []
@@ -135,10 +148,9 @@ def scan_workflow(workflow: str) -> list[RawFinding]:
     untrusted_pr_path = bool({"pull_request", "pull_request_target"} & triggers)
     for _, job in _items(_get(root, "jobs")):
         findings.extend(_permission_findings(_get(job, "permissions")))
-        runner = _get(job, "runs-on")
-        if untrusted_pr_path and isinstance(runner, ScalarNode) and "self-hosted" in runner.value:
-            can_replace = runner.value.strip() == "self-hosted"
-            findings.append(_finding("ZP004", runner, runner.value, fixable=can_replace, replacement="ubuntu-latest" if can_replace else None))
+        runner_finding = _runner_finding(_get(job, "runs-on"), untrusted_pr_path)
+        if runner_finding:
+            findings.append(runner_finding)
         steps = _get(job, "steps")
         if isinstance(steps, SequenceNode):
             for step in steps.value:

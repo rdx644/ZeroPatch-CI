@@ -11,6 +11,7 @@ from .scanner import WorkflowParseError, scan_workflow
 
 SEVERITY_RANK = {"low": 1, "medium": 2, "high": 3, "critical": 4}
 WORKFLOW_SUFFIXES = {".yml", ".yaml"}
+MAX_WORKFLOW_BYTES = 1_000_000
 
 
 def _workspace() -> Path:
@@ -69,6 +70,8 @@ def run(workflow_path: str, report_path: str, fail_on: str, workspace: Path | No
     for workflow in files:
         relative = workflow.relative_to(workspace).as_posix()
         try:
+            if workflow.stat().st_size > MAX_WORKFLOW_BYTES:
+                raise ValueError(f"Workflow exceeds the {MAX_WORKFLOW_BYTES:,}-byte scan limit.")
             for finding in scan_workflow(workflow.read_text(encoding="utf-8")):
                 findings.append({
                     "file": relative,
@@ -79,7 +82,7 @@ def run(workflow_path: str, report_path: str, fail_on: str, workspace: Path | No
                     "recommendation": finding.recommendation,
                     "fixable": finding.fixable,
                 })
-        except (OSError, UnicodeError, WorkflowParseError) as exc:
+        except (OSError, UnicodeError, ValueError, WorkflowParseError) as exc:
             errors.append({"file": relative, "error": str(exc)})
 
     threshold = SEVERITY_RANK.get(fail_on, 5)
@@ -93,8 +96,11 @@ def run(workflow_path: str, report_path: str, fail_on: str, workspace: Path | No
         "errors": errors,
     }
     report_target = _inside_workspace(workspace, report_path)
-    report_target.parent.mkdir(parents=True, exist_ok=True)
-    report_target.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    try:
+        report_target.parent.mkdir(parents=True, exist_ok=True)
+        report_target.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    except OSError as exc:
+        raise ValueError(f"Unable to write report-path: {exc}") from exc
     _write_github_output({
         "report-path": report_target.relative_to(workspace).as_posix(),
         "finding-count": str(len(findings)),

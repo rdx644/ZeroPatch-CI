@@ -16,11 +16,17 @@ def deterministic_patch(workflow: str, findings: Iterable[RawFinding]) -> str:
     replacements = sorted(((finding.start, finding.end, finding.replacement) for finding in findings), reverse=True)
     if not replacements:
         raise PatchError("Select one or more supported findings.")
+    previous_start = len(workflow) + 1
+    seen_ranges: set[tuple[int, int]] = set()
     patched = workflow
     for start, end, replacement in replacements:
         if replacement is None or start < 0 or end < start or end > len(workflow):
             raise PatchError("A selected finding has no safe deterministic transformation.")
+        if (start, end) in seen_ranges or end > previous_start:
+            raise PatchError("Selected findings overlap and cannot be safely transformed together.")
         patched = patched[:start] + replacement + patched[end:]
+        seen_ranges.add((start, end))
+        previous_start = start
     if patched == workflow:
         raise PatchError("No safe transformation was available for the selected findings.")
     return patched

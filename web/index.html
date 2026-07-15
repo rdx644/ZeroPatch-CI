@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#11251f" />
     <title>ZeroPatch CI — Evidence-first remediation</title>
+    <link rel="icon" href="/assets/favicon.svg" />
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
   <body>
@@ -19,53 +20,127 @@
       <section class="hero reveal">
         <div>
           <p class="eyebrow">EVIDENCE-FIRST SUPPLY-CHAIN DEFENSE</p>
-          <h1>Patch the workflow.<br/><em>Prove the fix.</em></h1>
+          <h1>Patch the workflow.<br /><em>Prove the fix.</em></h1>
         </div>
-        <p class="hero-copy">ZeroPatch CI finds high-risk GitHub Actions patterns, ranks the signal, and drafts only policy-bounded repairs. Nothing auto-merges.</p>
+        <p class="hero-copy">
+          ZeroPatch CI finds high-risk GitHub Actions patterns, ranks the
+          signal, and drafts only policy-bounded repairs. Nothing auto-merges.
+        </p>
       </section>
 
-      <section class="workspace reveal">
+      <div
+        id="notice"
+        class="notice"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
+      <section class="workspace bento-grid reveal">
         <aside class="rail">
-          <div class="step active"><span>01</span><strong>Ingest</strong><small>Workflow source</small></div>
-          <div class="step" id="stepScan"><span>02</span><strong>Triage</strong><small>Risk + anomaly</small></div>
-          <div class="step" id="stepPatch"><span>03</span><strong>Evidence</strong><small>Draft patch only</small></div>
-          <div class="rail-foot">HUMAN<br/>GATE<br/><b>REQUIRED</b></div>
+          <div class="step active">
+            <span>01</span><strong>Ingest</strong><small>Workflow source</small>
+          </div>
+          <div class="step" id="stepScan">
+            <span>02</span><strong>Triage</strong><small>Risk + anomaly</small>
+          </div>
+          <div class="step" id="stepPatch">
+            <span>03</span><strong>Evidence</strong
+            ><small>Draft patch only</small>
+          </div>
+          <div class="rail-foot">HUMAN<br />GATE<br /><b>REQUIRED</b></div>
         </aside>
         <div class="workspace-main">
           <section class="editor-panel">
-            <div class="panel-heading"><div><span class="marker"></span> SOURCE WORKFLOW</div><label>github-actions / yaml</label></div>
-            <textarea id="workflow" aria-label="GitHub Actions workflow" spellcheck="false" placeholder="Paste a GitHub Actions workflow…"></textarea>
-            <div class="editor-actions"><span id="sourceName">workflow.yml</span><button class="primary" id="scanBtn">Scan workflow <span>→</span></button></div>
+            <div class="panel-heading">
+              <div><span class="marker"></span> SOURCE WORKFLOW</div>
+              <label>github-actions / yaml</label>
+            </div>
+            <textarea
+              id="workflow"
+              aria-label="GitHub Actions workflow"
+              spellcheck="false"
+              placeholder="Paste a GitHub Actions workflow…"
+            ></textarea>
+            <div class="editor-actions">
+              <span id="sourceName">workflow.yml</span
+              ><button class="primary" id="scanBtn">
+                Scan workflow <span>→</span>
+              </button>
+            </div>
           </section>
 
           <section class="score-strip" id="scoreStrip" aria-live="polite">
-            <div class="score"><small>POLICY POSTURE</small><strong id="postureScore">—</strong><span>/100</span></div>
+            <div class="score">
+              <small>POLICY POSTURE</small><strong id="postureScore">—</strong
+              ><span>/100</span>
+            </div>
             <div><small>CRITICAL</small><b id="criticalCount">—</b></div>
             <div><small>HIGH</small><b id="highCount">—</b></div>
             <div><small>CONTROLS</small><b id="controlCount">5</b></div>
-            <p>Deterministic controls decide what is actionable. ML ranks review order only.</p>
+            <p>
+              Deterministic controls decide what is actionable. ML ranks review
+              order only.
+            </p>
           </section>
 
           <section class="findings-panel" id="findingsPanel">
-            <div class="panel-heading"><div><span class="marker warning"></span> REVIEW QUEUE <b id="findingTotal">0</b></div><label>select safe repairs</label></div>
-            <div id="findings" class="empty">Run a scan to generate an evidence-backed review queue.</div>
-            <div class="remediate-bar"><label class="agent-toggle"><input type="checkbox" id="useAgent" /> <span></span> GPT-5.6 rationale</label><button class="primary" id="patchBtn" disabled>Generate draft patch <span>→</span></button></div>
+            <div class="panel-heading">
+              <div>
+                <span class="marker warning"></span> REVIEW QUEUE
+                <b id="findingTotal">0</b>
+              </div>
+              <label>select safe repairs</label>
+            </div>
+            <div id="findings" class="empty">
+              Run a scan to generate an evidence-backed review queue.
+            </div>
+            <div class="remediate-bar">
+              <label class="agent-toggle"
+                ><input type="checkbox" id="useAgent" /> <span></span> GPT-5.6
+                rationale</label
+              ><button class="primary" id="patchBtn" disabled>
+                Generate draft patch <span>→</span>
+              </button>
+            </div>
           </section>
 
           <section class="evidence-panel" id="evidencePanel" hidden>
-            <div class="panel-heading"><div><span class="marker good"></span> REMEDIATION EVIDENCE</div><label id="patchId"></label></div>
-            <div class="summary"><p id="summary"></p><span id="agentMode"></span></div>
+            <div class="panel-heading">
+              <div><span class="marker good"></span> REMEDIATION EVIDENCE</div>
+              <label id="patchId"></label>
+            </div>
+            <div class="summary">
+              <p id="summary"></p>
+              <span id="agentMode"></span>
+            </div>
             <div class="evidence-grid" id="evidence"></div>
-            <details open><summary>Review proposed patch <span>human approval required</span></summary><pre id="patchedWorkflow"></pre></details>
+            <details open>
+              <summary>
+                Review proposed patch <span>human approval required</span>
+              </summary>
+              <pre id="patchedWorkflow"></pre>
+            </details>
           </section>
         </div>
       </section>
     </main>
     <template id="findingTemplate">
       <article class="finding">
-        <label class="check"><input type="checkbox"/><span></span></label>
-        <div class="finding-main"><div class="finding-title"><b></b><h3></h3><code></code></div><p class="evidence"></p><p class="recommendation"></p></div>
-        <div class="metrics"><div><small>PRIORITY</small><b class="priority"></b></div><div><small>ANOMALY</small><b class="anomaly"></b></div><small class="line"></small></div>
+        <label class="check"><input type="checkbox" /><span></span></label>
+        <div class="finding-main">
+          <div class="finding-title">
+            <b></b>
+            <h3></h3>
+            <code></code>
+          </div>
+          <p class="evidence"></p>
+          <p class="recommendation"></p>
+        </div>
+        <div class="metrics">
+          <div><small>PRIORITY</small><b class="priority"></b></div>
+          <div><small>ANOMALY</small><b class="anomaly"></b></div>
+          <small class="line"></small>
+        </div>
       </article>
     </template>
     <script src="/assets/app.js"></script>
