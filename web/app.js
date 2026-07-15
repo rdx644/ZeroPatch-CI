@@ -223,3 +223,31 @@ $("#workflow").addEventListener("input", () => {
     scanButton.textContent = "Scan workflow";
   }
 });
+function preferredTheme() {
+  try {
+    const savedTheme = localStorage.getItem("zeropatch-theme");
+    if (savedTheme === "night" || savedTheme === "day") return savedTheme;
+  } catch (_) {
+    // Storage can be unavailable in private or locked-down contexts.
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "night" : "day";
+}
+function applyTheme(theme) {
+  const night = theme === "night";
+  document.body.classList.toggle("theme-night", night);
+  const button = $("#themeToggle");
+  button.setAttribute("aria-pressed", String(night));
+  button.setAttribute("aria-label", night ? "Disable night shift" : "Enable night shift");
+  button.textContent = night ? "Night shift: on" : "Night shift";
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", night ? "#07121d" : "#11251f");
+  try {
+    localStorage.setItem("zeropatch-theme", theme);
+  } catch (_) {
+    // The theme still works for this session when storage is unavailable.
+  }
+}
+applyTheme(preferredTheme());
+$("#themeToggle").addEventListener("click", () => {
+  applyTheme(document.body.classList.contains("theme-night") ? "day" : "night");
+});
+window.addEventListener("DOMContentLoaded", () => $("#loadSample").click());
