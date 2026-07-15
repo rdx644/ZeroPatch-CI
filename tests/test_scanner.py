@@ -150,6 +150,10 @@ jobs:
         remediation = self.client.post("/api/remediate", json={"workflow": workflow, "source_name": "case.yml", "finding_ids": [finding["id"]]})
         self.assertEqual(remediation.status_code, 400)
 
+    def test_render_health_probe_bypasses_host_check_only_for_health_routes(self):
+        probe = TestClient(app, base_url="http://render-internal.invalid")
+        self.assertEqual(probe.get("/health/ready").status_code, 200)
+        self.assertEqual(probe.get("/").status_code, 400)
     def test_security_headers_are_present(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)

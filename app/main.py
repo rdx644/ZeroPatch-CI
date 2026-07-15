@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.types import Receive, Scope, Send
 
 from .audit import AuditStore
 from .auth import begin_github_login, current_identity, github_identity, is_admin, service_identity
@@ -36,6 +37,15 @@ def load_local_env() -> None:
                 os.environ["OPENAI_API_KEY"] = line.split("=", 1)[1].strip()
 
 
+class RenderHealthTrustedHostMiddleware(TrustedHostMiddleware):
+    """Let Render health probes through without weakening public host validation."""
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope["path"] in {"/health", "/health/ready"}:
+            await self.app(scope, receive, send)
+            return
+        await super().__call__(scope, receive, send)
+
 load_local_env()
 session_secret = os.getenv("ZEROPATCH_SESSION_SECRET")
 if not session_secret:
@@ -52,7 +62,7 @@ app.add_middleware(
     max_age=28800,
 )
 allowed_hosts = [host.strip() for host in os.getenv("ZEROPATCH_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",") if host.strip()]
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+app.add_middleware(RenderHealthTrustedHostMiddleware, allowed_hosts=allowed_hosts)
 app.mount("/assets", StaticFiles(directory=STATIC), name="assets")
 ranker = TransparentRiskRanker()
 audit_store = AuditStore()
