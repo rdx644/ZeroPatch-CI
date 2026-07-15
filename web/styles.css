@@ -1296,3 +1296,7 @@ body.theme-night .theme-toggle {
     margin-left: 0;
   }
 }
+.auth-link {
+  display: inline-block;
+  text-decoration: none;
+}

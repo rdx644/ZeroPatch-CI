@@ -28,7 +28,7 @@ python -m app.main
 
 Open `http://127.0.0.1:8000`. The dashboard loads `fixtures/insecure-release.yml` automatically.
 
-To enable the optional reviewer rationale for a trusted local session, put `OPENAI_API_KEY` in `.env.local` and set `ZEROPATCH_ALLOW_AGENT=1`. Keep this option disabled for shared or public deployments unless an authenticated, rate-limited service boundary is added.
+To enable the optional reviewer rationale for a trusted local session, put `OPENAI_API_KEY` in `.env.local`, set `ZEROPATCH_LOAD_DOTENV=1`, and set `ZEROPATCH_ALLOW_AGENT=1`. Keep this option disabled for shared or public deployments unless an authenticated, rate-limited service boundary is added.
 
 ## Docker
 
@@ -39,6 +39,15 @@ docker run --rm -p 8000:8000 zeropatch-ci
 
 The container runs as an unprivileged user and listens on `0.0.0.0:8000`. The default trusted hosts are `localhost` and `127.0.0.1`; for a reverse-proxied deployment, set `ZEROPATCH_ALLOWED_HOSTS` to an explicit comma-separated hostname allowlist. Apply TLS, request-size limits, and rate limits at that edge.
 
+## Production deployment
+
+`render.yaml` provisions the web service and its PostgreSQL audit database. Before applying the Blueprint, set these Render secrets (never commit them):
+
+- `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`
+- `ZEROPATCH_SESSION_SECRET` (a long random value)
+- `ZEROPATCH_ADMIN_LOGINS` (comma-separated GitHub login names permitted to read `/api/audit`)
+
+The production callback URL is `https://zeropatch-ci-rdx644.onrender.com/auth/github/callback`. The deployment requires the database to be healthy before it is considered ready. GitHub OAuth protects scan and remediation operations; optional unattended clients may instead send a value from `ZEROPATCH_API_KEYS` in the `X-ZeroPatch-Key` header. Rotate that secret outside the repository.
 ## Policy controls
 
 | Rule | Control | Automated remediation |

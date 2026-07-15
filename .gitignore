@@ -9,3 +9,7 @@ coverage/
 evals/results/
 .venv/
 .zeropatch/
+
+output/
+
+.playwright-cli/

@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +9,7 @@ import yaml
 from fastapi.testclient import TestClient
 
 from app.action_runner import run
+from app.audit import AuditStore
 from app.main import app
 from app.remediator import deterministic_patch
 from app.scanner import scan_workflow
@@ -157,3 +159,39 @@ jobs:
 
 if __name__ == "__main__":
     unittest.main()
+
+class ProductionHardeningTests(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+        self.workflow = (ROOT / "fixtures" / "insecure-release.yml").read_text(encoding="utf-8")
+
+    def test_audit_store_persists_minimal_event_metadata(self):
+        store = AuditStore("sqlite://", required=True)
+        self.assertTrue(store.initialize())
+        self.assertTrue(store.record("scan", "octocat", "release.yml", 3))
+        events = store.recent()
+        self.assertEqual(events[0]["actor"], "octocat")
+        self.assertEqual(events[0]["finding_count"], 3)
+        self.assertNotIn("detail", events[0])
+
+    def test_protected_api_rejects_anonymous_requests(self):
+        with patch.dict(os.environ, {"ZEROPATCH_AUTH_REQUIRED": "1"}, clear=False):
+            response = self.client.post("/api/scan", json={"workflow": self.workflow, "source_name": "release.yml"})
+        self.assertEqual(response.status_code, 401)
+
+    def test_service_key_can_use_protected_api_and_audit_endpoint(self):
+        environment = {"ZEROPATCH_AUTH_REQUIRED": "1", "ZEROPATCH_API_KEYS": "test-service-key"}
+        with patch.dict(os.environ, environment, clear=False):
+            response = self.client.post("/api/scan", headers={"X-ZeroPatch-Key": "test-service-key"}, json={"workflow": self.workflow, "source_name": "release.yml"})
+            audit = self.client.get("/api/audit", headers={"X-ZeroPatch-Key": "test-service-key"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(audit.status_code, 200)
+
+    def test_required_audit_failure_blocks_scan(self):
+        with patch("app.main.audit_store.record", return_value=False):
+            response = self.client.post("/api/scan", json={"workflow": self.workflow, "source_name": "release.yml"})
+        self.assertEqual(response.status_code, 503)
+    def test_oversized_api_content_length_is_rejected_cleanly(self):
+        response = self.client.post("/api/scan", content="{}", headers={"Content-Type": "application/json", "Content-Length": "110001"})
+        self.assertEqual(response.status_code, 413)
+        self.assertIn("content-security-policy", response.headers)

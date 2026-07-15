@@ -3,6 +3,7 @@ const state = {
   scannedWorkflow: "",
   sourceName: "workflow.yml",
   requestToken: 0,
+  authenticated: false,
 };
 const $ = (selector) => document.querySelector(selector);
 function setNotice(message = "", tone = "") {
@@ -18,7 +19,9 @@ async function request(url, options = {}) {
   });
   if (response.ok) return response.json();
   const payload = await response.json().catch(() => ({}));
-  throw new Error(payload.detail || `Request failed (${response.status})`);
+  const error = new Error(payload.detail || `Request failed (${response.status})`);
+  error.status = response.status;
+  throw error;
 }
 function setWorkflow(workflow, sourceName = "workflow.yml") {
   state.sourceName = sourceName;
@@ -198,16 +201,43 @@ async function patch() {
     togglePatchButton();
   }
 }
-$("#loadSample").addEventListener("click", async () => {
+async function loadSample(scanAfterLoad = false) {
   setNotice("Loading demo workflow...", "progress");
   try {
     const sample = await request("/api/sample");
     setWorkflow(sample.workflow, sample.source_name);
-    await scan();
+    if (scanAfterLoad) await scan();
   } catch (error) {
     setNotice(error.message, "error");
   }
-});
+}
+
+async function loadIdentity() {
+  try {
+    const identity = await request("/api/me");
+    state.authenticated = identity.authenticated || !identity.auth_required;
+    const link = $("#authLink");
+    if (!identity.authenticated) {
+      link.textContent = "Demo mode";
+      link.removeAttribute("href");
+      link.setAttribute("aria-disabled", "true");
+      return state.authenticated;
+    }
+    link.textContent = `Signed in as ${identity.login}`;
+    link.href = "#";
+    link.addEventListener("click", async (event) => {
+      event.preventDefault();
+      await fetch("/auth/logout", { method: "POST" });
+      window.location.assign("/");
+    });
+    return true;
+  } catch (error) {
+    state.authenticated = false;
+    return false;
+  }
+}
+
+$("#loadSample").addEventListener("click", () => loadSample(state.authenticated));
 $("#scanBtn").addEventListener("click", scan);
 $("#patchBtn").addEventListener("click", patch);
 $("#workflow").addEventListener("input", () => {
@@ -250,4 +280,8 @@ applyTheme(preferredTheme());
 $("#themeToggle").addEventListener("click", () => {
   applyTheme(document.body.classList.contains("theme-night") ? "day" : "night");
 });
-window.addEventListener("DOMContentLoaded", () => $("#loadSample").click());
+window.addEventListener("DOMContentLoaded", async () => {
+  const signedIn = await loadIdentity();
+  await loadSample(signedIn);
+  if (!signedIn) setNotice("Sign in with GitHub to scan or generate a draft patch.", "progress");
+});
