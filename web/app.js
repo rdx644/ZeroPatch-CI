@@ -62,10 +62,11 @@ function renderFindings(findings) {
   }
   host.className = "finding-list";
   const template = $("#findingTemplate");
-  findings.forEach((finding) => {
+  findings.forEach((finding, index) => {
     const node = template.content.cloneNode(true);
     const article = node.querySelector("article");
     article.dataset.id = finding.id;
+    article.style.setProperty("--entry-index", index);
     article.classList.toggle("disabled", !finding.fixable);
     const input = node.querySelector("input");
     input.disabled = !finding.fixable;
@@ -85,6 +86,23 @@ function renderFindings(findings) {
     node.querySelector(".line").textContent =
       `${finding.confidence}% policy confidence`;
     host.append(node);
+  });
+}
+function animateScanResults() {
+  const metrics = [
+    "#postureScore",
+    "#criticalCount",
+    "#highCount",
+    "#controlCount",
+    "#findingTotal",
+  ];
+  metrics.forEach((selector, index) => {
+    const metric = $(selector);
+    metric.classList.remove("metric-updated");
+    // Restart the compact confirmation animation when a new scan completes.
+    void metric.offsetWidth;
+    metric.style.setProperty("--metric-delay", `${index * 45}ms`);
+    metric.classList.add("metric-updated");
   });
 }
 function togglePatchButton() {
@@ -121,6 +139,7 @@ async function scan() {
     $("#evidencePanel").hidden = true;
     $("#patchBtn").disabled = true;
     renderFindings(result.findings);
+    animateScanResults();
     setNotice(
       `${result.findings.length} finding${result.findings.length === 1 ? "" : "s"} ready for review.`,
       "success",
@@ -142,8 +161,9 @@ function renderEvidence(result) {
   $("#patchedWorkflow").textContent = result.patched_workflow;
   const evidence = $("#evidence");
   evidence.replaceChildren();
-  result.evidence.forEach((check) => {
+  result.evidence.forEach((check, index) => {
     const article = document.createElement("article");
+    article.style.setProperty("--entry-index", index);
     const badge = document.createElement("span");
     badge.className = `badge ${check.status}`;
     badge.textContent = check.status;
