@@ -52,12 +52,18 @@ function severityColor(severity) {
       ? "#ff9f58"
       : "#7aa8ff";
 }
+function setSignedOutState() {
+  const link = $("#authLink");
+  link.textContent = "Sign in with GitHub";
+  link.href = "/auth/github/login";
+  link.removeAttribute("aria-disabled");
+}
 function renderFindings(findings) {
   const host = $("#findings");
   host.replaceChildren();
   if (!findings.length) {
     host.className = "empty";
-    host.textContent = "No policy violations matched this workflow.";
+    host.textContent = "No policy violations matched this workflow. Your workflow is clear against the five controls checked.";
     return;
   }
   host.className = "finding-list";
@@ -161,6 +167,8 @@ function renderEvidence(result) {
   $("#patchedWorkflow").textContent = result.patched_workflow;
   const evidence = $("#evidence");
   evidence.replaceChildren();
+  const passed = result.evidence.filter((check) => check.status === "passed").length;
+  $("#evidenceStatus").textContent = `${passed}/${result.evidence.length} structural checks passed. Review the draft before opening a pull request.`;
   result.evidence.forEach((check, index) => {
     const article = document.createElement("article");
     article.style.setProperty("--entry-index", index);
@@ -253,6 +261,7 @@ async function loadIdentity() {
     return true;
   } catch (error) {
     state.authenticated = false;
+    setSignedOutState();
     return false;
   }
 }

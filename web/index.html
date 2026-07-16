@@ -57,6 +57,10 @@
               <div><span class="marker"></span> SOURCE WORKFLOW</div>
               <label>github-actions / yaml</label>
             </div>
+            <p class="field-hint">
+              <b>01</b> Paste a workflow or load the sample. ZeroPatch reads
+              source only; it never executes repository code.
+            </p>
             <textarea
               id="workflow"
               aria-label="GitHub Actions workflow"
@@ -109,6 +113,7 @@
           <section class="evidence-panel" id="evidencePanel" hidden>
             <div class="panel-heading">
               <div><span class="marker good"></span> REMEDIATION EVIDENCE</div>
+            <p class="evidence-status" id="evidenceStatus"></p>
               <label id="patchId"></label>
             </div>
             <div class="summary">
